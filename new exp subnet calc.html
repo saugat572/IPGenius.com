@@ -1,0 +1,281 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IPv4/IPv6 Subnet Calculator</title>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --text-color: #f0f0f0;
+      --container-bg: #1e1e1e;
+      --border-color: #444;
+    }
+    body.light-mode {
+      --bg-color: #f9f9f9;
+      --text-color: #000;
+      --container-bg: #fff;
+      --border-color: #ccc;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 2rem;
+      transition: background 0.3s, color 0.3s;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: var(--container-bg);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      overflow-x: auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    label, select, input, button, textarea {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    input, select, button, textarea {
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+    }
+    .button-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .icon-button {
+      background-color: #4caf50;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .icon-button:hover {
+      background-color: #45a049;
+    }
+    .icon-button img {
+      width: 20px;
+      height: 20px;
+    }
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 2rem;
+    }
+    table {
+      min-width: 600px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 0.75rem;
+      text-align: center;
+    }
+    th {
+      background-color: var(--border-color);
+    }
+    .ip-info {
+      margin-bottom: 1rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body class="light-mode">
+  <div class="container">
+    <h1>Subnet Calculator</h1>
+    <div class="button-group">
+      <button class="icon-button" onclick="toggleTheme()">
+        <img src="https://img.icons8.com/ios-filled/50/contrast.png" alt="Theme Toggle" /> Theme
+      </button>
+      <button class="icon-button" onclick="toggleFLSM()">
+        <img src="https://img.icons8.com/ios-filled/50/network-card.png" alt="FLSM Mode" /> FLSM
+      </button>
+      <button class="icon-button" onclick="toggleVLSM()">
+        <img src="https://img.icons8.com/ios-filled/50/module.png" alt="VLSM Mode" /> VLSM
+      </button>
+      <button class="icon-button" onclick="toggleIPv6()">
+        <img src="https://img.icons8.com/ios-filled/50/ipv6.png" alt="IPv6 Mode" /> IPv6
+      </button>
+    </div>
+    <div id="flsmSection">
+      <label>Base IP Address:
+        <input type="text" id="baseIP" placeholder="e.g., 192.168.1.0" />
+      </label>
+      <label>Calculation Mode:
+        <select id="mode">
+          <option value="network">By Number of Networks</option>
+          <option value="host">By Number of Hosts</option>
+        </select>
+      </label>
+      <label id="inputLabel">Number of Networks:
+        <input type="number" id="inputValue" min="1" />
+      </label>
+      <button onclick="calculateSubnets()">Calculate</button>
+    </div>
+    <div id="vlsmSection" style="display:none">
+      <label>Base IP Address:
+        <input type="text" id="vlsmBaseIP" placeholder="e.g., 192.168.1.0" />
+      </label>
+      <label>Enter host requirements (comma-separated):
+        <textarea id="vlsmHosts" placeholder="e.g., 100,50,25"></textarea>
+      </label>
+      <button onclick="calculateVLSM()">Calculate VLSM</button>
+    </div>
+    <div id="ipv6Section" style="display:none">
+      <label>Base IPv6 Address:
+        <input type="text" id="ipv6Input" placeholder="e.g., 2001:0db8::" />
+      </label>
+      <label>Prefix Length:
+        <input type="number" id="ipv6Prefix" min="1" max="128" value="64" />
+      </label>
+      <button onclick="calculateIPv6()">Calculate IPv6</button>
+    </div>
+    <div class="ip-info" id="ipClassInfo"></div>
+    <div class="table-container"><div id="result"></div></div>
+  </div>  <script>
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+    }
+
+    function toggleFLSM() {
+      document.getElementById('flsmSection').style.display = 'block';
+      document.getElementById('vlsmSection').style.display = 'none';
+      document.getElementById('ipv6Section').style.display = 'none';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('ipClassInfo').innerHTML = '';
+    }
+
+    function toggleVLSM() {
+      document.getElementById('flsmSection').style.display = 'none';
+      document.getElementById('ipv6Section').style.display = 'none';
+      document.getElementById('vlsmSection').style.display = 'block';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('ipClassInfo').innerHTML = '';
+    }
+
+    function toggleIPv6() {
+      document.getElementById('flsmSection').style.display = 'none';
+      document.getElementById('vlsmSection').style.display = 'none';
+      document.getElementById('ipv6Section').style.display = 'block';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('ipClassInfo').innerHTML = '';
+    }
+
+    function isValidIPv4(ip) {
+      return /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/.test(ip);
+    }
+
+    function isValidIPv6(ip) {
+      return /^[0-9a-fA-F:]+$/.test(ip) && ip.includes(':');
+    }
+
+    function calculateSubnets() {
+      const ip = document.getElementById('baseIP').value.trim();
+      const mode = document.getElementById('mode').value;
+      const value = parseInt(document.getElementById('inputValue').value);
+      if (!isValidIPv4(ip)) {
+        alert('Enter a valid IPv4 address.');
+        return;
+      }
+      const parts = ip.split('.').map(Number);
+      let ipInt = (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+      let neededBits, subnetMaskBits;
+
+      if (mode === 'network') {
+        neededBits = Math.ceil(Math.log2(value));
+        subnetMaskBits = 32 - neededBits;
+      } else {
+        neededBits = Math.ceil(Math.log2(value + 2));
+        subnetMaskBits = 32 - neededBits;
+      }
+
+      // Align IP to subnet boundary
+      const increment = Math.pow(2, 32 - subnetMaskBits);
+      ipInt = Math.floor(ipInt / increment) * increment;
+
+      let subnets = [];
+      for (let i = 0; i < value; i++) {
+        const netID = ipInt + i * increment;
+        const first = netID + 1;
+        const last = netID + increment - 2;
+        const broadcast = netID + increment - 1;
+        const net = [(netID >>> 24), (netID >>> 16) & 255, (netID >>> 8) & 255, netID & 255].join('.');
+        const host1 = [(first >>> 24), (first >>> 16) & 255, (first >>> 8) & 255, first & 255].join('.');
+        const host2 = [(last >>> 24), (last >>> 16) & 255, (last >>> 8) & 255, last & 255].join('.');
+        const broad = [(broadcast >>> 24), (broadcast >>> 16) & 255, (broadcast >>> 8) & 255, broadcast & 255].join('.');
+        subnets.push({ net, host1, host2, broad });
+      }
+
+      let html = `<table><thead><tr><th>Network</th><th>Host Range</th><th>Broadcast</th></tr></thead><tbody>`;
+      for (let s of subnets) {
+        html += `<tr><td>${s.net}</td><td>${s.host1} - ${s.host2}</td><td>${s.broad}</td></tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('result').innerHTML = html;
+    }
+
+    function calculateVLSM() {
+      const ip = document.getElementById('vlsmBaseIP').value.trim();
+      const hosts = document.getElementById('vlsmHosts').value.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x) && x > 0);
+
+      if (!isValidIPv4(ip) || hosts.length === 0) {
+        alert('Enter a valid IPv4 address and valid host values.');
+        return;
+      }
+
+      hosts.sort((a, b) => b - a);
+      const parts = ip.split('.').map(Number);
+      let ipInt = (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+      let subnets = [];
+
+      for (let i = 0; i < hosts.length; i++) {
+        const neededBits = Math.ceil(Math.log2(hosts[i] + 2));
+        const subnetSize = Math.pow(2, neededBits);
+        const broadcast = ipInt + subnetSize - 1;
+        const net = [(ipInt >>> 24), (ipInt >>> 16) & 255, (ipInt >>> 8) & 255, ipInt & 255].join('.');
+        const first = ipInt + 1;
+        const last = broadcast - 1;
+        const host1 = [(first >>> 24), (first >>> 16) & 255, (first >>> 8) & 255, first & 255].join('.');
+        const host2 = [(last >>> 24), (last >>> 16) & 255, (last >>> 8) & 255, last & 255].join('.');
+        const broad = [(broadcast >>> 24), (broadcast >>> 16) & 255, (broadcast >>> 8) & 255, broadcast & 255].join('.');
+        subnets.push({ net, host1, host2, broad });
+        ipInt += subnetSize;
+      }
+
+      let html = `<table><thead><tr><th>Network</th><th>Host Range</th><th>Broadcast</th></tr></thead><tbody>`;
+      for (let s of subnets) {
+        html += `<tr><td>${s.net}</td><td>${s.host1} - ${s.host2}</td><td>${s.broad}</td></tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('result').innerHTML = html;
+    }
+
+    function calculateIPv6() {
+      const ip = document.getElementById('ipv6Input').value.trim();
+      const prefix = parseInt(document.getElementById('ipv6Prefix').value);
+      if (!isValidIPv6(ip)) {
+        alert('Enter a valid IPv6 address.');
+        return;
+      }
+      document.getElementById('result').innerHTML = `<p>IPv6 Subnet Calculation for ${ip} with Prefix /${prefix}</p>`;
+    }
+  </script></body>
+</html>
